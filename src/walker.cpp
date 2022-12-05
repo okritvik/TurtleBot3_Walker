@@ -12,16 +12,26 @@
 #include <sensor_msgs/msg/laser_scan.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 
+// Using literals to the sensor messages types for more readability
 using std::placeholders::_1;
 using namespace std::chrono_literals;
 
 using LIDAR = sensor_msgs::msg::LaserScan;
 using TWIST = geometry_msgs::msg::Twist;
 
+/**
+ * @brief Class that accomplishes the obstacle avoidance using turtlebot3 lidar topic
+ * 
+ */
 class Avoidance : public rclcpp::Node {
  public:
+ /**
+  * @brief Construct a new Avoidance object with walker node
+  * 
+  */
     Avoidance() :
         Node("walker") {
+            // Initialize the publisher and subscriber
             auto callback = std::bind(&Avoidance::lidar_callback, this, _1);
             m_lidar_sub = this->create_subscription<LIDAR>
                                         ("scan", 10, callback);
@@ -29,6 +39,11 @@ class Avoidance : public rclcpp::Node {
         }
 
  private:
+ /**
+  * @brief Callback function for the lidar /scan topic subscriber
+  * 
+  * @param msg 
+  */
     void lidar_callback(const LIDAR& msg) {
         // RCLCPP_INFO(this->get_logger(), "Angle Min %f", msg.angle_min);
         // RCLCPP_INFO(this->get_logger(), "Angle Max %f", msg.angle_max);
@@ -47,6 +62,12 @@ class Avoidance : public rclcpp::Node {
             }
         }
     }
+    /**
+     * @brief Function that publishes the velocities
+     * 
+     * @param x_vel 
+     * @param z_vel 
+     */
     void perform_action(auto x_vel, auto z_vel) {
         auto vel = TWIST();
         vel.linear.x = x_vel;
@@ -58,12 +79,20 @@ class Avoidance : public rclcpp::Node {
         m_pub_vel->publish(vel);
     }
 
+    // Private class members
     rclcpp::Subscription<LIDAR>::SharedPtr m_lidar_sub;
     rclcpp::Publisher<TWIST>::SharedPtr m_pub_vel;
     rclcpp::TimerBase::SharedPtr m_timer;
     LIDAR m_last_data;
 };
 
+/**
+ * @brief Main function that initializes the ROS node
+ * 
+ * @param argc 
+ * @param argv 
+ * @return int 
+ */
 int main(int argc, char **argv) {
     rclcpp::init(argc, argv);
     rclcpp::spin(std::make_shared<Avoidance>());
